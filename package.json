@@ -1,0 +1,28 @@
+{
+  "name": "educonnect-platform",
+  "version": "1.0.0",
+  "description": "EduConnect — Online Tutoring & Gamified Learning Platform",
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --prefix-colors \"cyan,yellow\" --names \"CLIENT,SERVER\" \"npm --prefix client run dev\" \"npm --prefix server run dev\"",
+    "dev:client": "npm --prefix client run dev",
+    "dev:server": "npm --prefix server run dev",
+    "build": "npm --prefix client run build",
+    "preview": "npm --prefix client run preview",
+    "server": "npm --prefix server run dev"
+  },
+  "keywords": [
+    "education",
+    "tutoring",
+    "react",
+    "typescript",
+    "tailwind",
+    "gamification",
+    "quizzes",
+    "geolocation"
+  ],
+  "author": "EduConnect Team",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

@@ -1,0 +1,265 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum VerificationStatus {
+  NOT_SUBMITTED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum AllotmentStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  ACTIVE
+  CANCELLED
+}
+
+enum QueryStatus {
+  PENDING
+  IN_REVIEW
+  RESOLVED
+}
+
+enum BadgeTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  phone        String?
+  avatar       String?
+  role         Role      @default(STUDENT)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  studentProfile StudentProfile?
+  teacherProfile TeacherProfile?
+  contactQueries ContactQuery[]
+  userBadges     UserBadge[]
+  rewardPoints   RewardPoint[]
+  notifications  Notification[]
+}
+
+model StudentProfile {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grade             String
+  board             String   @default("CBSE")
+  targetExams       String[]
+  preferredLanguage String   @default("English")
+  rewardPointsTotal Int      @default(0)
+  currentStreakDays Int      @default(1)
+
+  allotments        Allotment[]
+  testAttempts      TestAttempt[]
+}
+
+model TeacherProfile {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio                String
+  qualifications     String[]
+  subjects           String[]
+  experienceYears    Int                @default(1)
+  hourlyRate         Float              @default(500.0)
+  verified           Boolean            @default(false)
+  verificationStatus VerificationStatus @default(PENDING)
+  verificationNotes  String?
+  idProofUrl         String?
+  certificates       String[]
+  serviceRadiusKm    Float              @default(10.0)
+  latitude           Float?
+  longitude          Float?
+  rating             Float              @default(5.0)
+  reviewCount        Int                @default(0)
+
+  allotments         Allotment[]
+  notes              Note[]
+  videos             Video[]
+  shorts             Short[]
+  tests              Test[]
+}
+
+model Allotment {
+  id              String          @id @default(uuid())
+  studentId       String
+  student         StudentProfile  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacherId       String
+  teacher         TeacherProfile  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject         String
+  grade           String
+  mode            String          @default("online")
+  budget          Float?
+  status          AllotmentStatus @default(PENDING)
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model Note {
+  id            String         @id @default(uuid())
+  title         String
+  description   String?
+  subject       String
+  chapter       String
+  grade         String
+  fileUrl       String
+  fileType      String         @default("pdf")
+  fileSizeKb    Int            @default(1024)
+  downloadCount Int            @default(0)
+  aiSummary     String?
+  version       Int            @default(1)
+  teacherId     String
+  teacher       TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Video {
+  id              String         @id @default(uuid())
+  title           String
+  description     String?
+  subject         String
+  durationMinutes Int            @default(30)
+  videoUrl        String
+  thumbnailUrl    String?
+  views           Int            @default(0)
+  teacherId       String
+  teacher         TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model Short {
+  id              String         @id @default(uuid())
+  title           String
+  topic           String
+  durationSeconds Int            @default(45)
+  videoUrl        String
+  thumbnailUrl    String?
+  likes           Int            @default(0)
+  views           Int            @default(0)
+  teacherId       String
+  teacher         TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  createdAt       DateTime       @default(now())
+}
+
+model Test {
+  id              String         @id @default(uuid())
+  title           String
+  subject         String
+  grade           String
+  durationMinutes Int            @default(20)
+  passingScore    Int            @default(60)
+  negativeMarking Boolean        @default(false)
+  teacherId       String
+  teacher         TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  createdAt       DateTime       @default(now())
+
+  questions       Question[]
+  attempts        TestAttempt[]
+}
+
+model Question {
+  id            String   @id @default(uuid())
+  testId        String
+  test          Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  prompt        String
+  options       String[]
+  correctAnswer Int
+  explanation   String?
+  points        Int      @default(10)
+}
+
+model TestAttempt {
+  id               String         @id @default(uuid())
+  testId           String
+  test             Test           @relation(fields: [testId], references: [id], onDelete: Cascade)
+  studentId        String
+  student          StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  score            Int
+  maxScore         Int
+  passed           Boolean
+  timeSpentSeconds Int
+  answers          Int[]
+  weakTopics       String[]
+  aiFeedback       String?
+  createdAt        DateTime       @default(now())
+}
+
+model RewardPoint {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points    Int
+  reason    String
+  createdAt DateTime @default(now())
+}
+
+model Badge {
+  id          String      @id @default(uuid())
+  title       String      @unique
+  description String
+  tier        BadgeTier   @default(BRONZE)
+  icon        String
+  minPoints   Int
+  userBadges  UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId   String
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  awardedAt DateTime @default(now())
+
+  @@unique([userId, badgeId])
+}
+
+model ContactQuery {
+  id         String      @id @default(uuid())
+  name       String
+  email      String
+  phone      String?
+  subject    String
+  message    String
+  status     QueryStatus @default(PENDING)
+  adminNotes String?
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id])
+  createdAt  DateTime    @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+}
